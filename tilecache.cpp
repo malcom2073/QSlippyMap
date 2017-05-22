@@ -167,6 +167,8 @@ bool TileCache::contains(int x, int y, int z)
 void TileCache::run()
 {
 	m_nam = new QNetworkAccessManager();
+	qDebug() << QSslSocket::sslLibraryBuildVersionString();
+	qDebug() << QSslSocket::sslLibraryVersionString();
 
 	//Populate initial cache list
 	QDir cachedir(m_cacheLocation);
@@ -245,6 +247,7 @@ void TileCache::run()
 
 			QNetworkReply *reply = m_nam->get(req);
 			connect(reply,SIGNAL(finished()),this,SLOT(networkFinished()));
+			connect(reply,SIGNAL(error(QNetworkReply::NetworkError)),this,SLOT(networkError(QNetworkReply::NetworkError)));
 			emit networkTileUpdate(m_tileIdList.keys().count());
 			m_tileIdList[reply] = QPair<QPair<int,int> , int>(QPair<int,int>(privReqList.at(i).x,privReqList.at(i).y),privReqList.at(i).z);
 		}
@@ -260,14 +263,25 @@ void TileCache::run()
 		QApplication::processEvents();
 	}
 }
+void TileCache::networkError(QNetworkReply::NetworkError err)
+{
+	qDebug() << "Network Error:" << err;
+}
+
 void TileCache::networkFinished()
 {
 	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+	if (reply->error() != QNetworkReply::NoError)
+	{
+		return;
+	}
+	qDebug() << reply->errorString();
 	QByteArray imgdata = reply->readAll();
 	QImage img;
 	if (!img.loadFromData(imgdata))
 	{
 		qDebug() << "Failed to create IMG from web data";
+		qDebug() << QString(imgdata);
 		emit networkTileUpdate(m_tileIdList.keys().count()-1);
 		m_tileIdList.remove(reply);
 		return;

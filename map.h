@@ -59,6 +59,7 @@ private:
     QPointF m_lastMousePos;
     QPointF m_currentLatLon;
     QString m_cacheLocation;
+    QPoint m_currentTileCoords;
 signals:
     void mouseMoved(double lat, double lon);
     void mouseReleased(double lat, double lon);

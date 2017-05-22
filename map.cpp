@@ -27,36 +27,36 @@
 #include <QStandardPaths>
 #include <QDir>
 
-Map::Map(QWidget *parent) :
-    QGraphicsView(parent)
+Map::Map(QWidget *parent) : QGraphicsView(parent)
 {
-    m_currentPosition=0;
-    m_scene = new QGraphicsScene(this);
-    this->setScene(m_scene);
+	m_currentPosition=0;
+	m_scene = new QGraphicsScene(this);
+	this->setScene(m_scene);
 
-    setDragMode(ScrollHandDrag);
+	//setDragMode(ScrollHandDrag);
 
-    m_tileCache = new TileCache();
-    connect(m_tileCache,SIGNAL(tileRecv(int,int,int,QImage)),this,SLOT(tileRecv(int,int,int,QImage)));
-    connect(m_tileCache,SIGNAL(localTileUpdate(int)),this,SIGNAL(localTileUpdate(int)));
-    connect(m_tileCache,SIGNAL(networkTileUpdate(int)),this,SIGNAL(networkTileUpdate(int)));
-    //setAlignment(Qt::NoAlignment);
+	m_tileCache = new TileCache();
+	connect(m_tileCache,SIGNAL(tileRecv(int,int,int,QImage)),this,SLOT(tileRecv(int,int,int,QImage)));
+	connect(m_tileCache,SIGNAL(localTileUpdate(int)),this,SIGNAL(localTileUpdate(int)));
+	connect(m_tileCache,SIGNAL(networkTileUpdate(int)),this,SIGNAL(networkTileUpdate(int)));
+	//setAlignment(Qt::NoAlignment);
 
-    //double lat =  39.359194;
-    //double lon = -75.069349;
-     //double lat = 36.561288;
-    //double lon = -79.207576;
-    double lat = 39.155955;
-    double lon = -76.535755;
-    setCenter(lat,lon,18);
-    m_mouseIsDown = false;
+	//double lat =  39.359194;
+	//double lon = -75.069349;
+	//double lat = 36.561288;
+	//double lon = -79.207576;
+	double lat = 39.155955;
+	double lon = -76.535755;
+	setCenter(lat,lon,18);
+	m_mouseIsDown = false;
 
+	this->setTransformationAnchor(QGraphicsView::NoAnchor);
+	//this->setResizeAnchor(QGraphicsView::AnchorViewCenter);
 
+	this->setHorizontalScrollBarPolicy ( Qt::ScrollBarAlwaysOff );
+	this->setVerticalScrollBarPolicy ( Qt::ScrollBarAlwaysOff );
 
-    setMouseTracking(true);
-
-
-
+	setMouseTracking(true);
 }
 void Map::setCenter(double lat, double lon,int zoom)
 {
@@ -80,6 +80,8 @@ void Map::setCenter(double lat, double lon,int zoom)
 	qDebug() << this->sceneRect();
 	//m_scene->setSceneRect((tilex-5) * 256,(tiley-5)*256,whmap.x(),whmap.y());
 	//m_scene->setSceneRect();
+	m_currentTileCoords.setX(tilex);
+	m_currentTileCoords.setY(tiley);
 
 
 
@@ -235,8 +237,9 @@ QPointF Map::mapToSceneCoords(QPointF latlon)
 
 void Map::mouseMoveEvent(QMouseEvent *evt)
 {
-	//void mouseMoved(double lat, double lon);
-    QPointF scenecoords = mapToScene(evt->x(),evt->y());
+	QPointF scenecoords = mapToScene(evt->x(),evt->y());
+	QPointF realcentercoords = mapToScene(width()/2,height()/2);
+	QPointF realcenterlatlon = sceneToMapCoords(realcentercoords);
 	QPointF latlon = sceneToMapCoords(scenecoords);
 
 	emit mouseMoved(latlon.y(),latlon.x());
@@ -245,22 +248,115 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 	m_cursorCircle->setRect(newscene.x()-10,newscene.y()-10,20,20);
 	if (m_mouseIsDown)
 	{
-	//this->setSceneRect(this->sceneRect().x() + (m_lastMousePos.x() - scenecoords.x()),this->sceneRect().y() + (m_lastMousePos.y() - scenecoords.y()),this->sceneRect().width(),this->sceneRect().height());
-	//se//tTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-	//this->setSceneRect();
-	//translate(1,1);
-       // translate(m_lastMousePos.x() - scenecoords.x(),m_lastMousePos.y() - scenecoords.y());
-		m_lastMousePos = scenecoords;
-	update();
+		//Recalculate which tiles should be shown, and possibly remove old ones?
+		/*int tilex = long2tilex(latlon.x(),m_zoomLevel);
+		int tiley = lat2tiley(latlon.y(),m_zoomLevel);
+		for (int x=-5;x<5;x++)
+		{
+			for (int y=-5;y<5;y++)
+			{
+				m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
+			}
+		}*/
+		int tilex = long2tilex(realcenterlatlon.x(),m_zoomLevel);
+		int tiley = lat2tiley(realcenterlatlon.y(),m_zoomLevel);
+		if (tilex < m_currentTileCoords.x())
+		{
+			//Center has shifted left/right, remove one layer of images and add another.
+			for (int y=-5;y<5;y++)
+			{
+				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()+5)*256,(m_currentTileCoords.y()+y)*256));
+				if (items.count() > 0)
+				{
+					qDebug() << "Removing item";
+					m_scene->removeItem(items.at(0));
+					delete items.at(0);
+				}
+				else
+				{
+					qDebug() << "No items to remove";
+				}
+				m_tileCache->getTile(m_currentTileCoords.x()-5,m_currentTileCoords.y()+y,m_zoomLevel);
+			}
+		}
+		else if (tilex > m_currentTileCoords.x())
+		{
+			for (int y=-5;y<5;y++)
+			{
+				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()-5)*256,(m_currentTileCoords.y()+y)*256));
+				if (items.count() > 0)
+				{
+					qDebug() << "Removing item";
+					m_scene->removeItem(items.at(0));
+					delete items.at(0);
+				}
+				else
+				{
+					qDebug() << "No items to remove";
+				}
+				m_tileCache->getTile(m_currentTileCoords.x()+5,m_currentTileCoords.y()+y,m_zoomLevel);
+			}
+
+		}
+		if (tiley < m_currentTileCoords.y())
+		{
+			//Center has shifted left/right, remove one layer of images and add another.
+			for (int x=-5;x<5;x++)
+			{
+				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()+x)*256,(m_currentTileCoords.y()+5)*256));
+				if (items.count() > 0)
+				{
+					qDebug() << "Removing item";
+					m_scene->removeItem(items.at(0));
+					delete items.at(0);
+				}
+				else
+				{
+					qDebug() << "No items to remove";
+				}
+				m_tileCache->getTile(m_currentTileCoords.x()+x,m_currentTileCoords.y()-5,m_zoomLevel);
+			}
+
+		}
+		else if (tiley > m_currentTileCoords.y())
+		{
+			for (int x=-5;x<5;x++)
+			{
+				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()-x)*256,(m_currentTileCoords.y()+5)*256));
+				if (items.count() > 0)
+				{
+					qDebug() << "Removing item";
+					m_scene->removeItem(items.at(0));
+					delete items.at(0);
+				}
+				else
+				{
+					qDebug() << "No items to remove";
+				}
+				m_tileCache->getTile(m_currentTileCoords.x()+x,m_currentTileCoords.y()+5,m_zoomLevel);
+			}
+		}
+		m_currentTileCoords.setX(tilex);
+		m_currentTileCoords.setY(tiley);
+		qDebug() << "Center tile:" << tilex << tiley;
+		this->translate(scenecoords.x() - m_lastMousePos.x(),scenecoords.y() - m_lastMousePos.y());
+		//qreal scenex = sceneRect().x() + (scenecoords.x() - m_lastMousePos.x());
+		//qreal sceney = sceneRect().y() + (scenecoords.y() - m_lastMousePos.y());
+		//this->setSceneRect(scenex,sceney,sceneRect().width(),sceneRect().height());
+		//qDebug() << scenex << sceney;
+		//qDebug() << scenecoords.x() - m_lastMousePos.x() << scenecoords.y() - m_lastMousePos.y();
+		//qDebug() << this->transform();
+		m_lastMousePos = mapToScene(evt->x(),evt->y());
+		update();
 	}
-    QGraphicsView::mouseMoveEvent(evt);
+	QGraphicsView::mouseMoveEvent(evt);
 }
 void Map::mousePressEvent(QMouseEvent *evt)
 {
 	m_mouseIsDown = true;
-    m_lastMousePos = mapToScene(evt->x(),evt->y());
-   // setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-    QGraphicsView::mousePressEvent(evt);
+	m_lastMousePos = mapToScene(evt->x(),evt->y());
+	// setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+	QGraphicsView::mousePressEvent(evt);
 
 }
 void Map::mouseReleaseEvent(QMouseEvent *evt)
@@ -270,21 +366,21 @@ void Map::mouseReleaseEvent(QMouseEvent *evt)
 
 	emit mouseReleased(latlon.y(),latlon.x());
 	m_mouseIsDown = false;
-    //setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-    QGraphicsView::mouseReleaseEvent(evt);
+	//setTransformationAnchor(QGraphicsView::AnchorViewCenter);
+	QGraphicsView::mouseReleaseEvent(evt);
 }
 void Map::wheelEvent(QWheelEvent *evt)
 {
-    qDebug() << evt->x() << evt->y();
-    QPointF latlon = sceneToMapCoords(mapToScene(evt->x(),evt->y()));
-    if (evt->delta() > 0)
-    {
-	setCenter(latlon.y(),latlon.x(),m_zoomLevel+1);
-    }
-    else
-    {
-	setCenter(latlon.y(),latlon.x(),m_zoomLevel-1);
-    }
+	qDebug() << evt->x() << evt->y();
+	QPointF latlon = sceneToMapCoords(mapToScene(evt->x(),evt->y()));
+	if (evt->delta() > 0)
+	{
+		setCenter(latlon.y(),latlon.x(),m_zoomLevel+1);
+	}
+	else
+	{
+		setCenter(latlon.y(),latlon.x(),m_zoomLevel-1);
+	}
 }
 void Map::tileRecv(int x,int y, int z, QImage tile)
 {
@@ -293,10 +389,17 @@ void Map::tileRecv(int x,int y, int z, QImage tile)
 		return;
 	}
 	Tile *t = new Tile();
+
 	t->setFlag(QGraphicsItem::ItemIsMovable,false);
 	t->setFlag(QGraphicsItem::ItemIsSelectable,false);
 	t->setImage(tile,x,y);
 	m_scene->addItem(t);
+	m_scene->setSceneRect(QRectF());
+	m_scene->update();
+	//this->update();
+
+	//qDebug() << "Adding tile at:" << x*256 << y*256;
+	qDebug() << "New scene:" << m_scene->sceneRect();
 }
 void Map::setZoom(int zoom)
 {

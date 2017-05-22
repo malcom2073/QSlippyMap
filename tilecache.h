@@ -61,6 +61,7 @@ signals:
 	void networkTileUpdate(int count);
 private slots:
 	void networkFinished();
+	void networkError(QNetworkReply::NetworkError err);
 };
 
 #endif // TILECACHE_H
