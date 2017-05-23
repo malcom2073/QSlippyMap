@@ -265,7 +265,7 @@ void TileCache::run()
 }
 void TileCache::networkError(QNetworkReply::NetworkError err)
 {
-	qDebug() << "Network Error:" << err;
+	//qDebug() << "Network Error:" << err;
 }
 
 void TileCache::networkFinished()
@@ -275,7 +275,7 @@ void TileCache::networkFinished()
 	{
 		return;
 	}
-	qDebug() << reply->errorString();
+	//qDebug() << reply->errorString();
 	QByteArray imgdata = reply->readAll();
 	QImage img;
 	if (!img.loadFromData(imgdata))
@@ -286,7 +286,7 @@ void TileCache::networkFinished()
 		m_tileIdList.remove(reply);
 		return;
 	}
-	qDebug() << "Downloaded tile" << m_tileIdList.keys().count();
+	//qDebug() << "Downloaded tile" << m_tileIdList.keys().count();
 
 	emit networkTileUpdate(m_tileIdList.keys().count()-1);
 	emit tileRecv(m_tileIdList[reply].first.first,m_tileIdList[reply].first.second,m_tileIdList[reply].second,img);

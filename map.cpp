@@ -74,7 +74,7 @@ void Map::setCenter(double lat, double lon,int zoom)
 
 	m_scene->setSceneRect((tilex-5) * 256,(tiley-5)*256,10*256,10*256);
 	//QPointF whmap = mapToScene(width(),height());
-	this->setSceneRect((tilex-5) * 256,(tiley-5)*256,10*256,10*256);
+	//this->setSceneRect((tilex-5) * 256,(tiley-5)*256,10*256,10*256);
 	this->centerOn(lat,lon);
 	qDebug() << m_scene->sceneRect();
 	qDebug() << this->sceneRect();
@@ -338,7 +338,7 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 		}
 		m_currentTileCoords.setX(tilex);
 		m_currentTileCoords.setY(tiley);
-		qDebug() << "Center tile:" << tilex << tiley;
+		//qDebug() << "Center tile:" << tilex << tiley;
 		this->translate(scenecoords.x() - m_lastMousePos.x(),scenecoords.y() - m_lastMousePos.y());
 		//qreal scenex = sceneRect().x() + (scenecoords.x() - m_lastMousePos.x());
 		//qreal sceney = sceneRect().y() + (scenecoords.y() - m_lastMousePos.y());
@@ -348,6 +348,7 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 		//qDebug() << this->transform();
 		m_lastMousePos = mapToScene(evt->x(),evt->y());
 		update();
+		//qDebug() << QString::number(sceneRect().x(),'f') << QString::number(m_scene->sceneRect().x(),'f');
 	}
 	QGraphicsView::mouseMoveEvent(evt);
 }
@@ -399,7 +400,7 @@ void Map::tileRecv(int x,int y, int z, QImage tile)
 	//this->update();
 
 	//qDebug() << "Adding tile at:" << x*256 << y*256;
-	qDebug() << "New scene:" << m_scene->sceneRect();
+	//qDebug() << "New scene:" << m_scene->sceneRect();
 }
 void Map::setZoom(int zoom)
 {
