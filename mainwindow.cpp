@@ -52,14 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	connect(ui->replayPushButton,SIGNAL(clicked()),this,SLOT(replayClicked()));
 
-	connect(ui->zoomInPushButton,SIGNAL(clicked()),this,SLOT(zoomInButtonClicked()));
-	connect(ui->zoomOutPushButton,SIGNAL(clicked()),this,SLOT(zoomOutButtonClicked()));
 	connect(ui->comPortPushButton,SIGNAL(clicked()),this,SLOT(selectComPortButtonClicked()));
 
-	connect(ui->viewGraphsPushButton,SIGNAL(clicked()),this,SLOT(viewGraphsButtonClicked()));
-	connect(ui->viewLapsPushButton,SIGNAL(clicked()),this,SLOT(viewLapTimesButtonClicked()));
-	connect(ui->viewMapPushButton,SIGNAL(clicked()),this,SLOT(viewMapsButtonClicked()));
-	connect(ui->viewSettingsPushButton,SIGNAL(clicked()),this,SLOT(viewSettingsButtonClicked()));
 
 	//Mark's house
 	//m_centerLat = 36.56432333;
@@ -76,7 +70,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	//connect(source,SIGNAL(incomingData(DataClass)),this,SLOT(incomingData(DataClass)));
 	//source->start();
 	connect(ui->map,SIGNAL(mouseReleased(double,double)),this,SLOT(mouseClicked(double,double)));
-	connect(ui->setStartPushButton,SIGNAL(clicked()),this,SLOT(setStartButtonClicked()));
 	ui->tableWidget->setColumnCount(3);
 	ui->tableWidget->setHorizontalHeaderItem(0,new QTableWidgetItem("Lap"));
 	ui->tableWidget->setHorizontalHeaderItem(1,new QTableWidgetItem("Time"));

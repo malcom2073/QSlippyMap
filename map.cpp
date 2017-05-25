@@ -268,13 +268,8 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()+5)*256,(m_currentTileCoords.y()+y)*256));
 				if (items.count() > 0)
 				{
-					qDebug() << "Removing item";
 					m_scene->removeItem(items.at(0));
 					delete items.at(0);
-				}
-				else
-				{
-					qDebug() << "No items to remove";
 				}
 				m_tileCache->getTile(m_currentTileCoords.x()-5,m_currentTileCoords.y()+y,m_zoomLevel);
 			}
@@ -286,13 +281,8 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()-5)*256,(m_currentTileCoords.y()+y)*256));
 				if (items.count() > 0)
 				{
-					qDebug() << "Removing item";
 					m_scene->removeItem(items.at(0));
 					delete items.at(0);
-				}
-				else
-				{
-					qDebug() << "No items to remove";
 				}
 				m_tileCache->getTile(m_currentTileCoords.x()+5,m_currentTileCoords.y()+y,m_zoomLevel);
 			}
@@ -306,13 +296,8 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()+x)*256,(m_currentTileCoords.y()+5)*256));
 				if (items.count() > 0)
 				{
-					qDebug() << "Removing item";
 					m_scene->removeItem(items.at(0));
 					delete items.at(0);
-				}
-				else
-				{
-					qDebug() << "No items to remove";
 				}
 				m_tileCache->getTile(m_currentTileCoords.x()+x,m_currentTileCoords.y()-5,m_zoomLevel);
 			}
@@ -322,16 +307,11 @@ void Map::mouseMoveEvent(QMouseEvent *evt)
 		{
 			for (int x=-5;x<5;x++)
 			{
-				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()-x)*256,(m_currentTileCoords.y()+5)*256));
+				QList<QGraphicsItem*> items = m_scene->items(QPointF((m_currentTileCoords.x()+x)*256,(m_currentTileCoords.y()-5)*256));
 				if (items.count() > 0)
 				{
-					qDebug() << "Removing item";
 					m_scene->removeItem(items.at(0));
 					delete items.at(0);
-				}
-				else
-				{
-					qDebug() << "No items to remove";
 				}
 				m_tileCache->getTile(m_currentTileCoords.x()+x,m_currentTileCoords.y()+5,m_zoomLevel);
 			}
