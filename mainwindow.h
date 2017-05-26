@@ -28,9 +28,6 @@
 #include <QTimer>
 #include <QLabel>
 #include "map.h"
-#include "logdatasource.h"
-#include "gpsddatasource.h"
-#include "qcustomplot.h"
 namespace Ui {
 class MainWindow;
 }
@@ -44,7 +41,6 @@ public:
     ~MainWindow();
 
 private:
-	DataSource *m_logDataSource;
 	Ui::MainWindow *ui;
 	QList<QString> list;
 	QTimer *m_timer;
@@ -63,21 +59,16 @@ private:
 	QTime m_lapStartDateTime;
 	QLabel *m_tileUpdateLabel;
 	QLabel *m_tileDownloadLabel;
-	QCustomPlot *m_gyroPlot;
-	QCustomPlot *m_accelPlot;
 private slots:
 	void mouseMoved(double lat,double lon);
 	void mouseClicked(double lat, double lon);
 	void replayClicked();
-	void incomingData(DataClass data);
 	void setStartButtonClicked();
 	void lapTimeUpdateTimerTick();
 	void localTileUpdate(int count);
 	void networkTileUpdate(int count);
 	void zoomInButtonClicked();
 	void zoomOutButtonClicked();
-	void selectComPortButtonClicked();
-	void selectComPortSave(QString portname);
 	void viewMapsButtonClicked();
 	void viewLapTimesButtonClicked();
 	void viewGraphsButtonClicked();

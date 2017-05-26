@@ -25,10 +25,6 @@
 #include "tile.h"
 #include <QDebug>
 #include <QFile>
-#include "nmeadatasource.h"
-#include "jsondatasource.h"
-#include "comportselectdialog.h"
-#include "qcustomplot.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -37,13 +33,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 
 	//39.9628° N, 76.7281° W
-	m_logDataSource = 0;
 	state = 0;
 	m_lapCount = 1;
 	connect(ui->map,SIGNAL(mouseMoved(double,double)),this,SLOT(mouseMoved(double,double)));
 
-	m_logDataSource = new JSONDataSource();
-	connect(m_logDataSource,SIGNAL(incomingData(DataClass)),this,SLOT(incomingData(DataClass)));
 
 	//ui->plot->addGraph();
 	//ui->plot->graph(0)->setPen(QColor::fromRgb(255,0,0));
@@ -100,37 +93,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->plotScrollArea->setWidget(widget);
 	//ui->plotScrollArea->widget()->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
-	m_gyroPlot = new QCustomPlot(ui->plotScrollArea->widget());
-	m_gyroPlot->addGraph();
-	m_gyroPlot->addGraph();
-	m_gyroPlot->addGraph();
-	QPen pen = m_gyroPlot->graph(0)->pen();
-	pen.setColor(QColor::fromRgb(255,0,0));
-	m_gyroPlot->graph(0)->setPen(pen);
-	pen.setColor(QColor::fromRgb(0,255,0));
-	m_gyroPlot->graph(1)->setPen(pen);
-	pen.setColor(QColor::fromRgb(0,0,255));
-	m_gyroPlot->graph(2)->setPen(pen);
-	m_gyroPlot->show();
-	m_gyroPlot->setMinimumHeight(300);
-	ui->plotScrollArea->widget()->layout()->addWidget(m_gyroPlot);
-
-	m_accelPlot = new QCustomPlot(ui->plotScrollArea->widget());
-	m_accelPlot->addGraph();
-	m_accelPlot->addGraph();
-	m_accelPlot->addGraph();
-	pen = m_accelPlot->graph(0)->pen();
-	pen.setColor(QColor::fromRgb(255,0,0));
-	m_accelPlot->graph(0)->setPen(pen);
-	pen.setColor(QColor::fromRgb(0,255,0));
-	m_accelPlot->graph(1)->setPen(pen);
-	pen.setColor(QColor::fromRgb(0,0,255));
-	m_accelPlot->graph(2)->setPen(pen);
-	m_accelPlot->show();
-	m_accelPlot->setMinimumHeight(300);
-	ui->plotScrollArea->widget()->layout()->addWidget(m_accelPlot);
 }
-
 MainWindow::~MainWindow()
 {
 	delete ui;
@@ -155,131 +118,9 @@ void MainWindow::replayClicked()
 
 	//m_logDataSource = new GPSDDataSource();
 
-	m_logDataSource->start();
 	return;
 }
-void MainWindow::incomingData(DataClass data)
-{
-	if (data.imuvalid)
-	{
-		m_gyroPlot->graph(0)->addData(data.msecs,data.gyrox);
-		m_gyroPlot->graph(1)->addData(data.msecs,data.gyroy);
-		m_gyroPlot->graph(2)->addData(data.msecs,data.gyroz);
-		m_accelPlot->graph(0)->addData(data.msecs,data.accelx);
-		m_accelPlot->graph(1)->addData(data.msecs,data.accely);
-		m_accelPlot->graph(2)->addData(data.msecs,data.accelz);
 
-		m_gyroPlot->rescaleAxes();
-		m_gyroPlot->replot();
-
-		m_accelPlot->rescaleAxes();
-		m_accelPlot->replot();
-	}
-	else if (data.locationvalid)
-	{
-		double lat = data.latitude;
-		double lon = data.longitutde;
-		ui->map->centerOn(lat,lon);
-
-		double speed = data.speed;
-		ui->map->addWaypoint(lat,lon,speed);
-		ui->map->setCurrentPosition(lat,lon);
-		//ui->plot->graph(ui->plot->graphCount()-1)->addData(m_calculatedDistance,speed);
-		//ui->plot->rescaleAxes();
-		//ui->plot->replot();
-
-		double deltalat = m_centerLat - lat;
-		double deltalon = m_centerLon - lon;
-		double angle = atan2(deltalat,deltalon);
-		//this->setWindowTitle(QString::number(m_totalAngle * (180 / M_PI),'f',2));
-
-		if (state == 0)
-		{
-			if (m_centerLat > lat)
-			{
-				state = 1;
-			}
-			else
-			{
-				state = 2;
-			}
-			m_lastAngle = angle;
-			m_lastPoint = QPointF(lon,lat);
-			//state = 1;
-		}
-		else if (state == 1)
-		{
-			qDebug() << "1" << m_lastAngle << angle << m_totalAngle;
-			m_calculatedDistance += sqrt(abs(pow(m_lastPoint.x() - lon,2) - pow(m_lastPoint.y()-lat,2)));
-			if (m_lastAngle < 0 && angle > 0)
-			{
-				//Rolled over going clockwise
-				state = 2;
-				m_totalAngle += (M_PI - angle) + (M_PI + m_lastAngle);
-				m_totalUnsignedAngle += abs((M_PI - angle) + (M_PI + m_lastAngle));
-			}
-			else if (m_lastAngle > 0 && angle < 0)
-			{
-				//Rolled over going counter-clockwise
-				state = 2;
-				m_totalAngle += m_lastAngle - (2*M_PI + angle);
-				m_totalUnsignedAngle += abs(m_lastAngle - ((2*M_PI) + angle));
-			}
-			else
-			{
-				m_totalAngle += m_lastAngle - angle;
-				m_totalUnsignedAngle += abs(m_lastAngle - angle);
-			}
-			m_lastAngle = angle;
-		}
-		else if (state == 2)
-		{
-			qDebug() << "2" << m_lastAngle << angle << m_totalAngle;
-			m_calculatedDistance += sqrt(abs(pow(m_lastPoint.x() - lon,2) - pow(m_lastPoint.y()-lat,2)));
-			if (m_lastAngle > 0 && angle < 0)
-			{
-				state = 1;
-				//m_totalAngle += (M_PI + angle) + (M_PI - m_lastAngle);
-				m_totalAngle += m_lastAngle - angle;
-				m_totalUnsignedAngle += abs(m_lastAngle - angle);
-			}
-			else if (m_lastAngle < 0 && angle > 0)
-			{
-				state = 1;
-				m_totalAngle += m_lastAngle - angle;
-				m_totalUnsignedAngle += abs(m_lastAngle - angle);
-			}
-			else
-			{
-				m_totalAngle += m_lastAngle - angle;
-				m_totalUnsignedAngle += abs(m_lastAngle - angle);
-			}
-			m_lastAngle = angle;
-		}
-		if ((m_totalAngle > (2 * M_PI * m_lapCount)) || (m_totalAngle < (-2 * M_PI * m_lapCount)))
-		{
-			int lapspan = m_lapStartDateTime.elapsed();
-			m_lapStartDateTime.restart();
-			int startspan = m_startDateTime.elapsed();
-			ui->tableWidget->setRowCount(ui->tableWidget->rowCount()+1);
-			ui->tableWidget->setItem(ui->tableWidget->rowCount()-1,0,new QTableWidgetItem(QString::number(m_lapCount)));
-			ui->tableWidget->setItem(ui->tableWidget->rowCount()-1,1,new QTableWidgetItem(QTime::fromMSecsSinceStartOfDay(lapspan).toString()));
-			ui->tableWidget->setItem(ui->tableWidget->rowCount()-1,2,new QTableWidgetItem(QTime::fromMSecsSinceStartOfDay(startspan).toString()));
-			m_lapCount++;
-			m_calculatedTotalLapAngle = m_totalUnsignedAngle;
-			m_totalUnsignedAngle = 0;
-			m_calculatedDistance = 0;
-			//ui->plot->addGraph();
-			//ui->plot->graph(ui->plot->graphCount()-1)->setPen(QColor::fromRgb(255,0,0));
-			//for (int i=0;i<ui->plot->graphCount()-1;i++)
-			//{
-			//	ui->plot->graph(i)->setPen(QColor::fromRgb(0,0,255));
-			//}
-		}
-		m_lastPoint = QPointF(lon,lat);
-		this->setWindowTitle("Lap count:" + QString::number(m_lapCount) + "," + QString::number(m_totalAngle,'f',2) + "," + QString::number(m_calculatedDistance,'f',2));
-	}
-}
 void MainWindow::setStartButtonClicked()
 {
 	m_totalAngle = 0;
@@ -310,18 +151,6 @@ void MainWindow::zoomInButtonClicked()
 void MainWindow::zoomOutButtonClicked()
 {
 	ui->map->setZoom(ui->map->getZoom()-1);
-}
-void MainWindow::selectComPortButtonClicked()
-{
-	ComPortSelectDialog *dialog = new ComPortSelectDialog();
-	connect(dialog,SIGNAL(savePort(QString)),this,SLOT(selectComPortSave(QString)));
-	dialog->show();
-}
-void MainWindow::selectComPortSave(QString portname)
-{
-	ui->comPortPushButton->setText(portname);
-	m_logDataSource->setConnectionSpecific("portname",portname);
-	qobject_cast<ComPortSelectDialog*>(sender())->deleteLater();
 }
 void MainWindow::viewMapsButtonClicked()
 {
