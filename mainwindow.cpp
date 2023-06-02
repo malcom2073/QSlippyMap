@@ -92,7 +92,19 @@ MainWindow::MainWindow(QWidget *parent) :
 	widget->setLayout(new QVBoxLayout());
 	ui->plotScrollArea->setWidget(widget);
 	//ui->plotScrollArea->widget()->setSizeConstraint(QLayout::SetMinAndMaxSize);
+    connect(ui->actionGoogle,SIGNAL(triggered()),this,SLOT(menuGoogleClicked()));
+    connect(ui->actionMapBox,SIGNAL(triggered()),this,SLOT(menuMapBoxClicked()));
 
+}
+void MainWindow::menuMapBoxClicked()
+{
+    qDebug() << "MenuMapbox Clicked";
+    ui->map->SetMapBox();
+}
+void MainWindow::menuGoogleClicked()
+{
+    qDebug() << "MenuGoogle Clicked";
+    ui->map->SetGoogle();
 }
 MainWindow::~MainWindow()
 {

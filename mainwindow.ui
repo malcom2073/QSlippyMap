@@ -81,8 +81,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>63</width>
-             <height>16</height>
+             <width>98</width>
+             <height>28</height>
             </rect>
            </property>
           </widget>
@@ -128,9 +128,17 @@
      <x>0</x>
      <y>0</y>
      <width>1267</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuMap_Soruce">
+    <property name="title">
+     <string>Map Source</string>
+    </property>
+    <addaction name="actionMapBox"/>
+    <addaction name="actionGoogle"/>
+   </widget>
+   <addaction name="menuMap_Soruce"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -141,6 +149,16 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionMapBox">
+   <property name="text">
+    <string>MapBox</string>
+   </property>
+  </action>
+  <action name="actionGoogle">
+   <property name="text">
+    <string>Google</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>

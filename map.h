@@ -40,6 +40,8 @@ public:
     void setCenter(double lat, double lon,int zoom);
     int getZoom() { return m_zoomLevel; }
     void setZoom(int zoom);
+    void SetGoogle();
+    void SetMapBox();
 private:
     QList<QPair<double,double> >m_waypoints;
     TileCache *m_tileCache;

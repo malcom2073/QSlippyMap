@@ -37,7 +37,15 @@ public:
 	void getTile(int x, int y, int z);
 	bool contains(int x, int y, int z);
 	void zoomLevelChanged();
+    void SetGoogle();
+    void SetMapbox();
 private:
+    enum TileTypes
+    {
+        MAPBOX_TILES,
+        GOOGLE_TILES
+    };
+    TileTypes m_tileTypes;
 	int Random(int low, int high);
 	class TileReq
 	{

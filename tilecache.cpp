@@ -28,13 +28,28 @@
 TileCache::TileCache()
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation));
-	dir.mkpath(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    dir.mkpath(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/GOOGLE");
+    dir.mkpath(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/MAPBOX");
 
-	m_cacheLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    m_cacheLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/MAPBOX";
 	UserAgent = QString("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:%1.0) Gecko/%2%3%4 Firefox/%5.0.%6").arg(QString::number(Random(3,14)), QString::number(Random(QDate().currentDate().year() - 4, QDate().currentDate().year())), QString::number(Random(11,12)), QString::number(Random(10,30)), QString::number(Random(3,14)), QString::number(Random(1,10))).toLatin1();
-
+    m_tileTypes = MAPBOX_TILES;
 	start();
 
+}
+void TileCache::SetGoogle()
+{
+    m_tileTypes = GOOGLE_TILES;
+    m_cacheLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/GOOGLE";
+    m_tileExistsMap.clear();
+    zoomLevelChanged();
+}
+void TileCache::SetMapbox()
+{
+    m_tileTypes = MAPBOX_TILES;
+    m_cacheLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/MAPBOX";
+    m_tileExistsMap.clear();
+    zoomLevelChanged();
 }
 int TileCache::Random(int low, int high)
 {
@@ -239,11 +254,23 @@ void TileCache::run()
 				}
 			}
 			//No image found here, queue it up to be grabbed from the network.
-			QNetworkRequest req;
-			QString url = "https://mt0.google.com/vt/";
-			QString loc = "lyrs=s&x=%1&y=%2&z=%3";
-			req.setRawHeader("User-Agent",UserAgent);
-			req.setUrl(url + loc.arg(privReqList.at(i).x).arg(privReqList.at(i).y).arg(privReqList.at(i).z));
+            QNetworkRequest req;
+            if (m_tileTypes == GOOGLE_TILES)
+            {
+                // Google:
+                QString url = "https://mt0.google.com/vt/";
+                QString loc = "lyrs=s&x=%1&y=%2&z=%3";
+                req.setRawHeader("User-Agent",UserAgent);
+                req.setUrl(url + loc.arg(privReqList.at(i).x).arg(privReqList.at(i).y).arg(privReqList.at(i).z));
+            }
+            else if (m_tileTypes == MAPBOX_TILES)
+            {
+                // Mapbox:
+                QString url = "https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11/tiles/256";
+                QString loc = "/%3/%1/%2?access_token=pk.eyJ1IjoibWFsY29tMjA3MyIsImEiOiJjanEydGx5ajcxNGpxNDltbHczZWZjcGR1In0.pR1dIDpX6ZmoatSqmK93pA";
+                req.setRawHeader("User-Agent",UserAgent);
+                req.setUrl(url + loc.arg(privReqList.at(i).x).arg(privReqList.at(i).y).arg(privReqList.at(i).z));
+            }
 
 			QNetworkReply *reply = m_nam->get(req);
 			connect(reply,SIGNAL(finished()),this,SLOT(networkFinished()));

@@ -58,6 +58,32 @@ Map::Map(QWidget *parent) : QGraphicsView(parent)
 
 	setMouseTracking(true);
 }
+void Map::SetGoogle()
+{
+    m_tileCache->SetGoogle();
+    int tilex = m_currentTileCoords.x();
+    int tiley = m_currentTileCoords.y();
+    for (int x=-5;x<5;x++)
+    {
+        for (int y=-5;y<5;y++)
+        {
+            m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
+        }
+    }
+}
+void Map::SetMapBox()
+{
+    m_tileCache->SetMapbox();
+    int tilex = m_currentTileCoords.x();
+    int tiley = m_currentTileCoords.y();
+    for (int x=-5;x<5;x++)
+    {
+        for (int y=-5;y<5;y++)
+        {
+            m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
+        }
+    }
+}
 void Map::setCenter(double lat, double lon,int zoom)
 {
 	if (zoom != m_zoomLevel)
@@ -85,30 +111,30 @@ void Map::setCenter(double lat, double lon,int zoom)
 
 
 
-	for (int x=-5;x<5;x++)
-	{
-		for (int y=-5;y<5;y++)
-		{
-			m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
-			/*if (m_tileCache->contains(tilex+x,tiley+y,m_zoomLevel))
-			{
-				m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
+    for (int x=-5;x<5;x++)
+    {
+        for (int y=-5;y<5;y++)
+        {
+            m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
+            /*if (m_tileCache->contains(tilex+x,tiley+y,m_zoomLevel))
+            {
+                m_tileCache->getTile(tilex+x,tiley+y,m_zoomLevel);
 
-			}
-			else
-			{
-				QNetworkRequest req;
-				QString url = "https://mt0.google.com/vt/";
-				QString loc = "lyrs=s&x=%1&y=%2&z=%3";
-				req.setUrl(url + loc.arg(tilex+x).arg(tiley+y).arg(m_zoomLevel));
+            }
+            else
+            {
+                QNetworkRequest req;
+                QString url = "https://mt0.google.com/vt/";
+                QString loc = "lyrs=s&x=%1&y=%2&z=%3";
+                req.setUrl(url + loc.arg(tilex+x).arg(tiley+y).arg(m_zoomLevel));
 
-				QNetworkReply *reply = m_nam->get(req);
-				m_tileIdList[reply] = QPair<QPair<int,int> , int>(QPair<int,int>(tilex+x,tiley+y),m_zoomLevel);
-				connect(reply,SIGNAL(finished()),this,SLOT(networkFinished()));
-				emit tileUpdates(m_tileIdList.keys().count());
-			}*/
-		}
-	}
+                QNetworkReply *reply = m_nam->get(req);
+                m_tileIdList[reply] = QPair<QPair<int,int> , int>(QPair<int,int>(tilex+x,tiley+y),m_zoomLevel);
+                connect(reply,SIGNAL(finished()),this,SLOT(networkFinished()));
+                emit tileUpdates(m_tileIdList.keys().count());
+            }*/
+        }
+    }
 	QGraphicsLineItem *item = new QGraphicsLineItem();
 	m_scene->addItem(item);
 	m_cursorCircle = new QGraphicsEllipseItem();

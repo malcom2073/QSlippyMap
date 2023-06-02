@@ -73,6 +73,8 @@ private slots:
 	void viewLapTimesButtonClicked();
 	void viewGraphsButtonClicked();
 	void viewSettingsButtonClicked();
+    void menuMapBoxClicked();
+    void menuGoogleClicked();
 
 };
 
