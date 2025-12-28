@@ -25,6 +25,7 @@
 #include <QMutexLocker>
 #include <QDebug>
 #include <QApplication>
+#include <QRandomGenerator>
 TileCache::TileCache()
 {
 	QDir dir(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation));
@@ -53,7 +54,7 @@ void TileCache::SetMapbox()
 }
 int TileCache::Random(int low, int high)
 {
-    return low + qrand() % (high - low);
+    return low + QRandomGenerator::global()->bounded(high - low);
 }
 
 void TileCache::zoomLevelChanged()
@@ -274,7 +275,7 @@ void TileCache::run()
 
 			QNetworkReply *reply = m_nam->get(req);
 			connect(reply,SIGNAL(finished()),this,SLOT(networkFinished()));
-			connect(reply,SIGNAL(error(QNetworkReply::NetworkError)),this,SLOT(networkError(QNetworkReply::NetworkError)));
+		connect(reply,SIGNAL(errorOccurred(QNetworkReply::NetworkError)),this,SLOT(networkError(QNetworkReply::NetworkError)));
 			emit networkTileUpdate(m_tileIdList.keys().count());
 			m_tileIdList[reply] = QPair<QPair<int,int> , int>(QPair<int,int>(privReqList.at(i).x,privReqList.at(i).y),privReqList.at(i).z);
 		}

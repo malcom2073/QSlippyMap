@@ -26,6 +26,7 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QLabel>
 #include "map.h"
 namespace Ui {
@@ -55,8 +56,8 @@ private:
 	double m_calculatedDistance;
 	int m_lapCount;
 	int state;
-	QTime m_startDateTime;
-	QTime m_lapStartDateTime;
+	QElapsedTimer m_startDateTime;
+	QElapsedTimer m_lapStartDateTime;
 	QLabel *m_tileUpdateLabel;
 	QLabel *m_tileDownloadLabel;
 private slots:

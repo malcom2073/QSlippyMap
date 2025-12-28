@@ -378,9 +378,9 @@ void Map::mouseReleaseEvent(QMouseEvent *evt)
 }
 void Map::wheelEvent(QWheelEvent *evt)
 {
-	qDebug() << evt->x() << evt->y();
-	QPointF latlon = sceneToMapCoords(mapToScene(evt->x(),evt->y()));
-	if (evt->delta() > 0)
+	qDebug() << evt->position().x() << evt->position().y();
+	QPointF latlon = sceneToMapCoords(mapToScene(evt->position().x(),evt->position().y()));
+	if (evt->angleDelta().y() > 0)
 	{
 		setCenter(latlon.y(),latlon.x(),m_zoomLevel+1);
 	}

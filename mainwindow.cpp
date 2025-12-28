@@ -69,8 +69,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_lapTimeUpdateTimer = new QTimer(this);
 	connect(m_lapTimeUpdateTimer,SIGNAL(timeout()),this,SLOT(lapTimeUpdateTimerTick()));
 	// m_lapTimeUpdateTimer->start(500);
-	m_startDateTime = QTime::currentTime();
-	m_lapStartDateTime = QTime::currentTime();
 	m_startDateTime.start();
 	m_lapStartDateTime.start();
 
@@ -139,9 +137,8 @@ void MainWindow::setStartButtonClicked()
 }
 void MainWindow::lapTimeUpdateTimerTick()
 {
-	QTime current = QTime::currentTime();
-	int lapspan = m_lapStartDateTime.elapsed();
-	int startspan = m_startDateTime.elapsed();
+	qint64 lapspan = m_lapStartDateTime.elapsed();
+	qint64 startspan = m_startDateTime.elapsed();
 
 	ui->lapLabel->setText("Lap: " + QTime::fromMSecsSinceStartOfDay(lapspan).toString());
 	ui->splitLabel->setText("Split: " + QTime::fromMSecsSinceStartOfDay(startspan).toString());
