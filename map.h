@@ -46,12 +46,17 @@ private:
     QList<QPair<double,double> >m_waypoints;
     TileCache *m_tileCache;
     int m_zoomLevel;
+    double m_targetZoom;
+    int m_displayedZoomLevel;
+    QMap<int, QList<QGraphicsPixmapItem*>> m_tileLayers;
     QGraphicsScene *m_scene;
     QMap<QNetworkReply*,QPair<QPair<int,int>,int > > m_tileIdList;
     void mouseMoveEvent(QMouseEvent *evt);
     void mousePressEvent(QMouseEvent *evt);
     void mouseReleaseEvent(QMouseEvent *evt);
     void wheelEvent(QWheelEvent *evt);
+    void checkZoomThreshold();
+    void cleanupOldTiles(int keepZoomLevel);
     QPointF mapToSceneCoords(QPointF latlon);
     QPointF sceneToMapCoords(QPointF scenecoords);
     QGraphicsEllipseItem *m_cursorCircle;

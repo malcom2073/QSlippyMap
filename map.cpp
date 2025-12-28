@@ -26,6 +26,8 @@
 #include <QPen>
 #include <QStandardPaths>
 #include <QDir>
+#include <QtMath>
+#include <QDebug>
 
 Map::Map(QWidget *parent) : QGraphicsView(parent)
 {
@@ -47,10 +49,12 @@ Map::Map(QWidget *parent) : QGraphicsView(parent)
 	//double lon = -79.207576;
 	double lat = 39.155955;
 	double lon = -76.535755;
+	m_targetZoom = 18;
+	m_displayedZoomLevel = 18;
 	setCenter(lat,lon,18);
 	m_mouseIsDown = false;
 
-	this->setTransformationAnchor(QGraphicsView::NoAnchor);
+	this->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
 	//this->setResizeAnchor(QGraphicsView::AnchorViewCenter);
 
 	this->setHorizontalScrollBarPolicy ( Qt::ScrollBarAlwaysOff );
@@ -86,14 +90,24 @@ void Map::SetMapBox()
 }
 void Map::setCenter(double lat, double lon,int zoom)
 {
-	if (zoom != m_zoomLevel)
+	bool zoomChanged = (zoom != m_zoomLevel);
+	
+	if (zoomChanged)
 	{
 		m_tileCache->zoomLevelChanged();
+		// Update target zoom to match
+		m_targetZoom = zoom;
+		m_displayedZoomLevel = zoom;
 	}
+	
 	m_zoomLevel = zoom;
 	m_currentLatLon = QPointF(lon,lat);
-	m_scene->clear();
-	m_currentPosition = 0;
+	
+	if (m_scene->items().count() < 10 || !zoomChanged)
+	{
+		m_scene->clear();
+		m_currentPosition = 0;
+	}
 
 	int tilex = long2tilex(lon,m_zoomLevel);
 	int tiley = lat2tiley(lat,m_zoomLevel);
@@ -246,7 +260,7 @@ QPointF Map::mapToSceneCoords(QPointF latlon)
     double lat = latlon.y();
     double lon = latlon.x();
     int currtiley = lat2tiley(lat,m_zoomLevel);
-    int currtilex = long2tilex(lat,m_zoomLevel);
+    int currtilex = long2tilex(lon,m_zoomLevel);  // Fixed: use lon, not lat
 
     double currlat = tiley2lat(currtiley,m_zoomLevel);
     double currlon = tilex2long(currtilex,m_zoomLevel);
@@ -378,36 +392,239 @@ void Map::mouseReleaseEvent(QMouseEvent *evt)
 }
 void Map::wheelEvent(QWheelEvent *evt)
 {
-	qDebug() << evt->position().x() << evt->position().y();
-	QPointF latlon = sceneToMapCoords(mapToScene(evt->position().x(),evt->position().y()));
-	if (evt->angleDelta().y() > 0)
+	double zoomDelta = evt->angleDelta().y() / 120.0 * 0.2;  // Each notch is 120, scale by 0.2 for smoothness
+	
+	m_targetZoom += zoomDelta;
+	
+	if (m_targetZoom < 1) 
 	{
-		setCenter(latlon.y(),latlon.x(),m_zoomLevel+1);
+		m_targetZoom = 1;
 	}
-	else
+	if (m_targetZoom > 19)
 	{
-		setCenter(latlon.y(),latlon.x(),m_zoomLevel-1);
+		m_targetZoom = 19;
+	}
+	
+	double scaleFactor = qPow(2.0, m_targetZoom - m_displayedZoomLevel);
+	
+	resetTransform();
+	scale(scaleFactor, scaleFactor);
+	
+	checkZoomThreshold();
+	
+	qDebug() << "Target zoom:" << m_targetZoom << "Display zoom:" << m_displayedZoomLevel << "Scale:" << scaleFactor;
+}
+
+void Map::checkZoomThreshold()
+{
+	int optimalZoom = qRound(m_targetZoom);
+	
+	if (optimalZoom < 1) optimalZoom = 1;
+	if (optimalZoom > 19) optimalZoom = 19;
+	
+	if (optimalZoom != m_displayedZoomLevel)
+	{
+		qDebug() << "Switching tile zoom from" << m_displayedZoomLevel << "to" << optimalZoom;
+		
+		QPointF viewportCenter = viewport()->rect().center();
+		QPointF oldSceneCenter = viewportTransform().inverted().map(viewportCenter);
+		
+		QPointF centerLatLon = sceneToMapCoords(oldSceneCenter);
+		
+		int oldZoomLevel = m_displayedZoomLevel;
+		
+		m_tileCache->zoomLevelChanged();
+		
+		m_displayedZoomLevel = optimalZoom;
+		m_zoomLevel = optimalZoom;
+		
+		m_targetZoom = optimalZoom;
+		
+		resetTransform();
+		
+		QPointF newSceneCenter = mapToSceneCoords(centerLatLon);
+		printf("Old Scene Center: (%.2f, %.2f)\n", oldSceneCenter.x(), oldSceneCenter.y());
+		printf("New Scene Center: (%.2f, %.2f)\n", newSceneCenter.x(), newSceneCenter.y());
+
+		QPointF oldLatLon = sceneToMapCoords(oldSceneCenter);
+		QPointF newLatLon = sceneToMapCoords(newSceneCenter);
+		printf("Old Center LatLon: (%.6f, %.6f)\n", oldLatLon.y(), oldLatLon.x());
+		printf("New Center LatLon: (%.6f, %.6f)\n", newLatLon.y(), newLatLon.x());
+		
+		int tilex = (int)(newSceneCenter.x() / 256);
+		int tiley = (int)(newSceneCenter.y() / 256);
+		int oldtilex = m_currentTileCoords.x();
+		int oldtiley = m_currentTileCoords.y();
+		printf("Old Tile Coords: (%d, %d)\n", oldtilex, oldtiley);
+		printf("New Tile Coords: (%d, %d)\n", tilex, tiley);
+		
+		m_currentTileCoords.setX(tilex);
+		m_currentTileCoords.setY(tiley);
+		
+		m_scene->setSceneRect((tilex-10) * 256, (tiley-10) * 256, 20*256, 20*256);
+		
+		int zoomDiff = optimalZoom - oldZoomLevel;
+		
+		for (int x=-7; x<8; x++)
+		{
+			for (int y=-7; y<8; y++)
+			{
+				QImage placeholder;
+				
+				if (zoomDiff == 1)
+				{
+					int oldTileX = (tilex + x) / 2;
+					int oldTileY = (tiley + y) / 2;
+					QPointF oldTileCenter(oldTileX * 256 + 128, oldTileY * 256 + 128);
+					
+					QList<QGraphicsItem*> oldItems = m_scene->items(oldTileCenter);
+					Tile *oldTile = nullptr;
+					foreach(QGraphicsItem *item, oldItems)
+					{
+						Tile *t = dynamic_cast<Tile*>(item);
+						if (t && t->zValue() == oldZoomLevel)
+						{
+							oldTile = t;
+							break;
+						}
+					}
+					
+					if (oldTile)
+					{
+						int quadX = (tilex + x) % 2;
+						int quadY = (tiley + y) % 2;
+						
+						QImage oldImage = oldTile->getImage();
+						if (!oldImage.isNull())
+						{
+							QImage quadrant = oldImage.copy(quadX * 128, quadY * 128, 128, 128);
+							placeholder = quadrant.scaled(256, 256, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+						}
+					}
+				}
+				else if (zoomDiff == -1)
+				{
+					placeholder = QImage(256, 256, QImage::Format_RGB32);
+					placeholder.fill(QColor(230, 230, 230));
+					QPainter painter(&placeholder);
+					
+					for (int qx = 0; qx < 2; qx++)
+					{
+						for (int qy = 0; qy < 2; qy++)
+						{
+							int oldTileX = (tilex + x) * 2 + qx;
+							int oldTileY = (tiley + y) * 2 + qy;
+							QPointF oldTileCenter(oldTileX * 256 + 128, oldTileY * 256 + 128);
+							
+							QList<QGraphicsItem*> oldItems = m_scene->items(oldTileCenter);
+							Tile *oldTile = nullptr;
+							foreach(QGraphicsItem *item, oldItems)
+							{
+								Tile *t = dynamic_cast<Tile*>(item);
+								if (t && t->zValue() == oldZoomLevel)
+								{
+									oldTile = t;
+									break;
+								}
+							}
+							
+							if (oldTile)
+							{
+								QImage oldImage = oldTile->getImage();
+								if (!oldImage.isNull())
+								{
+									QImage scaled = oldImage.scaled(128, 128, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+									painter.drawImage(qx * 128, qy * 128, scaled);
+								}
+							}
+						}
+					}
+				}
+				
+				if (placeholder.isNull())
+				{
+					placeholder = QImage(256, 256, QImage::Format_RGB32);
+					placeholder.fill(QColor(230, 230, 230));
+				}
+				
+				tileRecv(tilex+x, tiley+y, m_zoomLevel, placeholder);
+				
+				m_tileCache->getTile(tilex+x, tiley+y, m_zoomLevel);
+			}
+		}
+		
+		QGraphicsView::centerOn(newSceneCenter);
+		
+		cleanupOldTiles(optimalZoom);
 	}
 }
+
 void Map::tileRecv(int x,int y, int z, QImage tile)
 {
 	if (z != m_zoomLevel)
 	{
 		return;
 	}
+	
+	QPointF tileCenter(x * 256 + 128, y * 256 + 128);
+	QList<QGraphicsItem*> itemsAtPos = m_scene->items(tileCenter);
+	
+	foreach(QGraphicsItem *item, itemsAtPos)
+	{
+		Tile *existingTile = dynamic_cast<Tile*>(item);
+		if (existingTile && existingTile->zValue() == z)
+		{
+			existingTile->setImage(tile, x, y);
+			m_scene->update();
+			return;
+		}
+	}
+	
 	Tile *t = new Tile();
-
 	t->setFlag(QGraphicsItem::ItemIsMovable,false);
 	t->setFlag(QGraphicsItem::ItemIsSelectable,false);
 	t->setImage(tile,x,y);
+	
+	t->setZValue(z);
+	
 	m_scene->addItem(t);
-	m_scene->setSceneRect(QRectF());
+	
+	// m_scene->setSceneRect(QRectF());
 	m_scene->update();
-	//this->update();
-
-	//qDebug() << "Adding tile at:" << x*256 << y*256;
-	//qDebug() << "New scene:" << m_scene->sceneRect();
+	
+	//qDebug() << "Adding tile at:" << x*256 << y*256 << "zoom:" << z << "Current zoom:" << m_zoomLevel;
 }
+
+void Map::cleanupOldTiles(int keepZoomLevel)
+{
+	QList<QGraphicsItem*> itemsToRemove;
+	
+	foreach(QGraphicsItem *item, m_scene->items())
+	{
+		Tile *tile = dynamic_cast<Tile*>(item);
+		if (tile)
+		{
+			int tileZoom = static_cast<int>(tile->zValue());
+			
+			if (qAbs(tileZoom - keepZoomLevel) > 2)
+			{
+				itemsToRemove.append(tile);
+			}
+		}
+	}
+	
+	foreach(QGraphicsItem *item, itemsToRemove)
+	{
+		m_scene->removeItem(item);
+		delete item;
+	}
+	
+	if (itemsToRemove.size() > 0)
+	{
+		qDebug() << "Cleaned up" << itemsToRemove.size() << "old tiles";
+	}
+}
+
 void Map::setZoom(int zoom)
 {
 	setCenter(m_currentLatLon.y(),m_currentLatLon.x(),zoom);

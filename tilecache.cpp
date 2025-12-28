@@ -245,6 +245,7 @@ void TileCache::run()
 					if (cachedir.exists(QString::number(privReqList.at(i).z) + ".png"))
 					{
 						//cachedir.remove(QString::number(z) + ".png");
+						qDebug() << "Tile found in cache:" << privReqList.at(i).x << privReqList.at(i).y << privReqList.at(i).z;
 						QImage img;
 						img.load(cachedir.absoluteFilePath(QString::number(privReqList.at(i).z) + ".png"));
 						//return img;
@@ -254,6 +255,8 @@ void TileCache::run()
 					}
 				}
 			}
+			qDebug() << "Tile not found in cache, downloading:" << privReqList.at(i).x << privReqList.at(i).y << privReqList.at(i).z;
+			
 			//No image found here, queue it up to be grabbed from the network.
             QNetworkRequest req;
             if (m_tileTypes == GOOGLE_TILES)
@@ -263,6 +266,7 @@ void TileCache::run()
                 QString loc = "lyrs=s&x=%1&y=%2&z=%3";
                 req.setRawHeader("User-Agent",UserAgent);
                 req.setUrl(url + loc.arg(privReqList.at(i).x).arg(privReqList.at(i).y).arg(privReqList.at(i).z));
+				qDebug() << "Downoading from google";
             }
             else if (m_tileTypes == MAPBOX_TILES)
             {
@@ -293,7 +297,7 @@ void TileCache::run()
 }
 void TileCache::networkError(QNetworkReply::NetworkError err)
 {
-	//qDebug() << "Network Error:" << err;
+	qDebug() << "Network Error:" << err;
 }
 
 void TileCache::networkFinished()
@@ -301,6 +305,7 @@ void TileCache::networkFinished()
 	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
 	if (reply->error() != QNetworkReply::NoError)
 	{
+		qDebug() << "Network error on tile download:" << reply->errorString();
 		return;
 	}
 	//qDebug() << reply->errorString();
@@ -314,7 +319,7 @@ void TileCache::networkFinished()
 		m_tileIdList.remove(reply);
 		return;
 	}
-	//qDebug() << "Downloaded tile" << m_tileIdList.keys().count();
+	qDebug() << "Downloaded tile" << m_tileIdList.keys().count();
 
 	emit networkTileUpdate(m_tileIdList.keys().count()-1);
 	emit tileRecv(m_tileIdList[reply].first.first,m_tileIdList[reply].first.second,m_tileIdList[reply].second,img);

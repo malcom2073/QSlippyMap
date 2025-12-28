@@ -31,6 +31,7 @@ public:
     void setImage(QImage image,int x,int y);
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget=0);
     QRectF boundingRect() const;
+    QImage getImage() const { return m_image; }
 private:
     QImage m_image;
 signals:
