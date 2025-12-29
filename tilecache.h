@@ -45,6 +45,7 @@ private:
         MAPBOX_TILES,
         GOOGLE_TILES
     };
+    QString m_mapboxToken;
     TileTypes m_tileTypes;
 	int Random(int low, int high);
 	class TileReq

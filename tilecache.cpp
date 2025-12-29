@@ -35,6 +35,18 @@ TileCache::TileCache()
     m_cacheLocation = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/MAPBOX";
 	UserAgent = QString("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:%1.0) Gecko/%2%3%4 Firefox/%5.0.%6").arg(QString::number(Random(3,14)), QString::number(Random(QDate().currentDate().year() - 4, QDate().currentDate().year())), QString::number(Random(11,12)), QString::number(Random(10,30)), QString::number(Random(3,14)), QString::number(Random(1,10))).toLatin1();
     m_tileTypes = MAPBOX_TILES;
+	
+	m_mapboxToken = QString::fromUtf8(qgetenv("MAPBOX_TOKEN"));
+	
+	if (m_mapboxToken.isEmpty())
+	{
+		QFile tokenFile(".mapbox_token");
+		if (tokenFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		{
+			m_mapboxToken = QString::fromUtf8(tokenFile.readAll().trimmed());
+			tokenFile.close();
+		}
+	}
 	start();
 
 }
@@ -270,9 +282,17 @@ void TileCache::run()
             }
             else if (m_tileTypes == MAPBOX_TILES)
             {
-                // Mapbox:
-                QString url = "https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11/tiles/256";
-                QString loc = "/%3/%1/%2?access_token=pk.eyJ1IjoibWFsY29tMjA3MyIsImEiOiJjanEydGx5ajcxNGpxNDltbHczZWZjcGR1In0.pR1dIDpX6ZmoatSqmK93pA";
+               
+				if (m_mapboxToken.isEmpty())
+				{
+					qDebug() << "Mapbox token is empty, cannot download tiles!";
+					continue;
+				}
+                // New API
+                //QString url = "https://api.mapbox.com/v4/mapbox.satellite";
+                //QString loc = "/%3/%1/%2.jpg90?access_token=" + m_mapboxToken;
+				QString url = "https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11/tiles/256";
+                QString loc = "/%3/%1/%2?access_token=" + m_mapboxToken;
                 req.setRawHeader("User-Agent",UserAgent);
                 req.setUrl(url + loc.arg(privReqList.at(i).x).arg(privReqList.at(i).y).arg(privReqList.at(i).z));
             }
